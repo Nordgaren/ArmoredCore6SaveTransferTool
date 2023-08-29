@@ -5,15 +5,17 @@ namespace ArmoredCore6SaveTransferTool;
 
 public class SL2Entry {
     private readonly byte[] _sl2Key = { 0xB1, 0x56, 0x87, 0x9F, 0x13, 0x48, 0x97, 0x98, 0x70, 0x05, 0xC4, 0x87, 0x00, 0xAE, 0xF8, 0x79 };
-    private const int IvSize = 0x10;
-    private const int PaddingSize = 0xC;
+    private const int _ivSize = 0x10;
+    private const int _paddingSize = 0xC;
+    private const int _startOfChecksumData = sizeof(int);
+    private const int _endOfChecksumData = _paddingSize + MD5.HashSizeInBytes;
     private byte[] _data;
     private readonly byte[] _iv;
     private byte[] _decryptedData;
 
     public SL2Entry(byte[] data) {
         _data = data;
-        _iv = new byte[IvSize];
+        _iv = new byte[_ivSize];
         Buffer.BlockCopy(_data, 0, _iv, 0, 16);
         DecryptSL2File();
     }
@@ -31,7 +33,7 @@ public class SL2Entry {
             aes.IV = _iv;
 
             ICryptoTransform decryptor = aes.CreateDecryptor();
-            using (MemoryStream encStream = new(_data, IvSize, _data.Length - IvSize))
+            using (MemoryStream encStream = new(_data, _ivSize, _data.Length - _ivSize))
             using (CryptoStream cryptoStream = new(encStream, decryptor, CryptoStreamMode.Read))
             using (MemoryStream decStream = new()) {
                 cryptoStream.CopyTo(decStream);
@@ -54,7 +56,7 @@ public class SL2Entry {
             using (MemoryStream decStream = new(_decryptedData))
             using (CryptoStream cryptoStream = new(decStream, encryptor, CryptoStreamMode.Read))
             using (MemoryStream encStream = new()) {
-                encStream.Write(aes.IV, 0, IvSize);
+                encStream.Write(aes.IV, 0, _ivSize);
                 cryptoStream.CopyTo(encStream);
                 _data = encStream.ToArray();
             }
@@ -74,14 +76,12 @@ public class SL2Entry {
     }
     public void PatchChecksum() {
         byte[] checksum = getChecksum();
-        int padding = 12 + 16;
-        int end = _decryptedData.Length - padding;
+        int end = _decryptedData.Length - _endOfChecksumData;
         Array.Copy(checksum, 0, _decryptedData, end, checksum.Length);
     }
     byte[] getChecksum() {
-        int padding = 12 + MD5.HashSizeInBytes;
-        int end = _decryptedData.Length - padding;
-        byte[] bs = _decryptedData[0x4..end];
+        int end = _decryptedData.Length - _endOfChecksumData;
+        byte[] bs = _decryptedData[_startOfChecksumData..end];
         return MD5.HashData(bs);
     }
     public bool ChangeSteamID(long steamId) {
