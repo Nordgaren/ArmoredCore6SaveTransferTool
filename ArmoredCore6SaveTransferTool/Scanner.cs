@@ -1,5 +1,5 @@
-﻿namespace ArmoredCore6SaveTransferTool; 
+﻿using System.Text;
 
-public class Scanner {
-    
-}
+namespace ArmoredCore6SaveTransferTool;
+
+
