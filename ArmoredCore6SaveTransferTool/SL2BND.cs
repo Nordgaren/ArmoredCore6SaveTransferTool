@@ -29,5 +29,31 @@ public class SL2BND {
         }
         _bnd.Write(_location);
     }
+    
+    public static void PatchSL2(string path) {
+        SL2BND sl2Bnd = new(path);
+
+        string? parentDirName = Path.GetFileName(Path.GetDirectoryName(path));
+        if (long.TryParse(parentDirName, out long id)) {
+            SL2ChangeSteamID(sl2Bnd, id);
+            return;
+        }
+
+        Console.WriteLine("Please enter the new steam ID:");
+        string? userInput = Console.ReadLine();
+        if (long.TryParse(userInput, out long steamId)) {
+            SL2ChangeSteamID(sl2Bnd, steamId);
+            return;
+        }
+        
+        Console.WriteLine($"Invalid steam ID. Could not parse. Received \"{userInput}\"");
+
+    }
+
+    static void SL2ChangeSteamID(SL2BND sl2Bnd, long id) {
+        Console.WriteLine($"Changing steam ID to {id}");
+        sl2Bnd.ChangeSteamId(id);
+        sl2Bnd.Write();
+    }
 
 }

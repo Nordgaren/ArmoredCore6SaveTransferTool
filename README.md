@@ -10,3 +10,10 @@ Transfers saves to a new SteamId
 # Thank You
 [TKGP](https://github.com/JKAnderson/) - Author of [SoulsFormats](https://github.com/JKAnderson/SoulsFormats) 
 [B3](https://github.com/pawREP/) - Author of [ACVIEmblemCreator](https://github.com/pawREP/ACVIEmblemCreator), who gave me the key for the SL2 files.  
+
+# Patch Notes
+
+## 1.1
+* File comes with .NET dependencies, now. 
+## 1.0
+* Release

@@ -7,6 +7,8 @@ public class SL2Entry {
     private readonly byte[] _sl2Key = { 0xB1, 0x56, 0x87, 0x9F, 0x13, 0x48, 0x97, 0x98, 0x70, 0x05, 0xC4, 0x87, 0x00, 0xAE, 0xF8, 0x79 };
     private const int _ivSize = 0x10;
     private const int _paddingSize = 0xC;
+    private const int _sectionStringSize = 0x10;
+    private const int _sectionHeaderSize = 0x20;
     private const int _startOfChecksumData = sizeof(int);
     private const int _endOfChecksumData = _paddingSize + MD5.HashSizeInBytes;
     private byte[] _data;
@@ -62,9 +64,6 @@ public class SL2Entry {
             }
         }
     }
-    public byte[] GetMD5Hash() {
-        return MD5.HashData(_data);
-    }
     public void PatchData(byte[] newData, int offset) {
         Array.Copy(newData, 0, _decryptedData, offset, newData.Length);
     }
@@ -88,43 +87,51 @@ public class SL2Entry {
         return ChangeSteamID(BitConverter.GetBytes(steamId));
     }
     public bool ChangeSteamID(byte[] steamId) {
-        List<int> hits = scanForString("Steam");
-        if (hits.Count < 1) {
+        List<SL2Section> sections = scanForSection("Steam");
+        if (sections.Count < 1) {
             return false;
         }
-        foreach (int hit in hits) {
-            PatchData(steamId, hit);
+        foreach (SL2Section section in sections) {
+            PatchData(steamId, section.Offset + _sectionHeaderSize);
         }
 
         return true;
     }
-    public List<int> scanForString(string str) {
-        List<int> hits = new();
+    private List<SL2Section> scanForSection(string str) {
+        List<SL2Section> sections = new();
 
         for (int i = 0; i < _decryptedData.Length; i++) {
-            int sectionEnd = i + 16;
+            int sectionEnd = i + _sectionStringSize;
             if (sectionEnd >= _decryptedData.Length) {
                 break;
             }
             byte[] section = _decryptedData[i..sectionEnd];
             if (!char.IsAsciiLetter((char)section[0])) {
-                continue;
+                    continue;
             }
-            string sectionStr = Encoding.UTF8.GetString(section);
+            string sectionStr = getSectionString(section);
             if (!sectionStr.Contains(str)) {
                 continue;
             }
             int size = i + 16;
             int sizeEnd = size + 4;
             byte[] b = _decryptedData[size..sizeEnd];
-            int val = BitConverter.ToInt32(b);
-            if (val != 8) {
+            int dataSize = BitConverter.ToInt32(b);
+            if (dataSize != 8) {
                 continue;
             }
-            i += 32;
-            hits.Add(i);
+            sections.Add(new SL2Section(sectionStr, i, dataSize));
+            i += _sectionHeaderSize + dataSize;
         }
 
-        return hits;
+        return sections;
+    }
+    private string getSectionString(byte[] section) {
+        int index = Array.FindIndex(section, b => b == 0);
+        if (index == -1) {
+            index = _sectionStringSize;
+        }
+        return Encoding.UTF8.GetString(section[..index]);
+
     }
 }

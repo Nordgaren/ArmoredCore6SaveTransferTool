@@ -7,4 +7,4 @@ if (args.Length < 1 || !BND4.Is(args[0])) {
     Util.PrintHelp();
 }
 
-Util.PatchSL2(args[0]);
+SL2BND.PatchSL2(args[0]);
