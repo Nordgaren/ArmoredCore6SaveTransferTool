@@ -18,13 +18,13 @@ public class SL2Entry {
     public SL2Entry(byte[] data) {
         _data = data;
         _iv = new byte[_ivSize];
-        Buffer.BlockCopy(_data, 0, _iv, 0, 16);
-        DecryptSL2File();
+        Buffer.BlockCopy(_data, 0, _iv, 0, _ivSize);
+        decryptSL2File();
     }
     /// <summary>
     /// Decrypts a file from a DS2/DS3 SL2BND. Do not remove the hash and IV before calling.
     /// </summary>
-    public void DecryptSL2File() {
+    private void decryptSL2File() {
         using (Aes aes = Aes.Create()) {
             aes.Mode = CipherMode.CBC;
             aes.BlockSize = 128;
@@ -75,12 +75,12 @@ public class SL2Entry {
     }
     public void PatchChecksum() {
         byte[] checksum = getChecksum();
-        int end = _decryptedData.Length - _endOfChecksumData;
-        Array.Copy(checksum, 0, _decryptedData, end, checksum.Length);
+        int checksumEnd = _decryptedData.Length - _endOfChecksumData;
+        Array.Copy(checksum, 0, _decryptedData, checksumEnd, checksum.Length);
     }
     byte[] getChecksum() {
-        int end = _decryptedData.Length - _endOfChecksumData;
-        byte[] bs = _decryptedData[_startOfChecksumData..end];
+        int checksumEnd = _decryptedData.Length - _endOfChecksumData;
+        byte[] bs = _decryptedData[_startOfChecksumData..checksumEnd];
         return MD5.HashData(bs);
     }
     public bool ChangeSteamID(long steamId) {
